@@ -8,28 +8,29 @@
 import Foundation
 import SwiftUI
 
-private enum Constants {
-    static let startColor: Color = .mainAppColorStart
-    static let endColor: Color = .mainAppColorEnd
-    static let titileColor: Color = .white
-    static let title: String = "IT-LINK"
-}
+// MARK: - OnboardingView
 
 struct OnboardingView: View {
+    
+    // MARK: - Properties
+
+    let title: String = "IT-LINK"
+
+    // MARK: - Computed Properties
     var body: some View {
         VStack {
             Spacer()
-            Text(Constants.title)
+            Text(title)
                 .font(.title)
                 .fontWeight(.bold)
-                .foregroundStyle(Constants.titileColor)
+                .foregroundStyle(.white)
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle())
                 .padding()
-                .foregroundStyle(Constants.titileColor)
+                .foregroundStyle(.white)
             Spacer()
         }
-        .background(LinearGradient(colors: [Color(Constants.startColor),Color(Constants.endColor)],
+        .background(LinearGradient(colors: [Color(.mainAppColorStart),Color(.mainAppColorEnd)],
                                      startPoint: .top,
                                      endPoint: .bottom))
     }
