@@ -20,25 +20,25 @@ enum CacheImageType {
 }
 
 final class CacheManager {
+    
+    //MARK: Properties
+    
     static let shared = CacheManager()
+    
+    //MARK: Private Properties
     
     private let fileManager = FileManager.default
     private let cacheDirectory: URL
+    
+    //MARK: Init
 
     private init() {
         self.cacheDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         createSubfolders()
     }
 
-    private func createSubfolders() {
-        for type in [CacheImageType.preview, .full] {
-            let folder = cacheDirectory.appendingPathComponent(type.folderName)
-            if !fileManager.fileExists(atPath: folder.path) {
-                try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
-            }
-        }
-    }
-
+    //MARK: Functions
+    
     func save(_ data: Data, forKey key: String, type: CacheImageType) {
         let fileURL = url(forKey: key, type: type) ?? URL(string: "")
         do {
@@ -56,5 +56,16 @@ final class CacheManager {
     func url(forKey key: String, type: CacheImageType) -> URL? {
         let folder = cacheDirectory.appendingPathComponent(type.folderName)
         return folder.appendingPathComponent(key.sha256())
+    }
+    
+    //MARK: Private functions
+    
+    private func createSubfolders() {
+        for type in [CacheImageType.preview, .full] {
+            let folder = cacheDirectory.appendingPathComponent(type.folderName)
+            if !fileManager.fileExists(atPath: folder.path) {
+                try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+            }
+        }
     }
 }

@@ -10,16 +10,22 @@ import Combine
 
 @MainActor
 final class GalleryViewModel: ObservableObject {
+    
+    //MARK: Properties
+    
     @Published var imageURLs: [URL] = []
     @Published var isLoading = false
     @Published var error: Error?
     @Published var isShowNetworkErrorAlert = false
     @Published var cachedImageURLs: [URL: URL] = [:]
     
+    //MARK: Private Properties
+    
     private let fileDownloader = NetworkManager()
     private let isConnectivityAvailable = NetworkConnectionManager.shared
     private var cancellables = Set<AnyCancellable>()
     
+    //MARK: Functions
 
     func loadImages() async {
         guard isConnectivityAvailable.isConnected else {
@@ -47,7 +53,7 @@ final class GalleryViewModel: ObservableObject {
             cachedImageURLs[url] = previewURL
             return
         }
-        
+    
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             CacheManager.shared.save(data, forKey: url.absoluteString, type: .full)
@@ -64,6 +70,4 @@ final class GalleryViewModel: ObservableObject {
             print("Image load error: \(error)")
         }
     }
-
-
 }
