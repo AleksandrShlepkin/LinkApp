@@ -6,3 +6,10 @@
 //
 
 import Foundation
+
+enum GalleryContentState {
+    case content([URL])
+    case error(Error?)
+    case loading
+    case alert
+}

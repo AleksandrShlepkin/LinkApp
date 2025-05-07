@@ -19,7 +19,13 @@ enum CacheImageType {
     }
 }
 
-final class CacheManager {
+protocol ICacheManager: Sendable {
+    func saveImage(_ data: Data, forKey key: String, type: CacheImageType) async
+    func getImage(forKey key: String, type: CacheImageType) async -> Data?
+    func urlImage(forKey key: String, type: CacheImageType) async -> URL
+}
+
+actor CacheManager {
     
     //MARK: Properties
     
@@ -34,33 +40,6 @@ final class CacheManager {
 
     private init() {
         self.cacheDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        createSubfolders()
-    }
-
-    //MARK: Functions
-    
-    func save(_ data: Data, forKey key: String, type: CacheImageType) {
-        let fileURL = url(forKey: key, type: type) ?? URL(string: "")
-        do {
-            try data.write(to: fileURL!)
-        } catch {
-            print("Failed to write cache for \(type): \(error)")
-        }
-    }
-
-    func get(forKey key: String, type: CacheImageType) -> Data? {
-        let fileURL = url(forKey: key, type: type) ?? URL(string: "")
-        return try? Data(contentsOf: fileURL!)
-    }
-
-    func url(forKey key: String, type: CacheImageType) -> URL? {
-        let folder = cacheDirectory.appendingPathComponent(type.folderName)
-        return folder.appendingPathComponent(key.sha256())
-    }
-    
-    //MARK: Private functions
-    
-    private func createSubfolders() {
         for type in [CacheImageType.preview, .full] {
             let folder = cacheDirectory.appendingPathComponent(type.folderName)
             if !fileManager.fileExists(atPath: folder.path) {
@@ -68,4 +47,30 @@ final class CacheManager {
             }
         }
     }
+
+}
+
+extension CacheManager: ICacheManager {
+    
+    //MARK: Functions
+    
+    func saveImage(_ data: Data, forKey key: String, type: CacheImageType) async {
+        let fileURL = await urlImage(forKey: key, type: type)
+        do {
+            try data.write(to: fileURL)
+        } catch {
+            print("Failed to write cache for \(type): \(error)")
+        }
+    }
+
+    func getImage(forKey key: String, type: CacheImageType) async -> Data? {
+        let fileURL = await urlImage(forKey: key, type: type)
+        return try? Data(contentsOf: fileURL)
+    }
+
+    func urlImage(forKey key: String, type: CacheImageType) async -> URL {
+        let folder = cacheDirectory.appendingPathComponent(type.folderName)
+        return folder.appendingPathComponent(key.sha256())
+    }
+    
 }

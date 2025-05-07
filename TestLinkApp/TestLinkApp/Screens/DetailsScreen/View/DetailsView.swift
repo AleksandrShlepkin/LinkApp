@@ -8,9 +8,6 @@
 import SwiftUI
 
 private enum Constants {
-    static let startColor: Color = .mainAppColorStart
-    static let endColor: Color = .mainAppColorEnd
-    static let blackColor: Color = .black
     static let scaleZoomableImageView: CGFloat =  1.0
     static let minimumScaleZoomableImageView: CGFloat =  1.0
     static let durationAnimateShowNavBar: CGFloat =  0.2
@@ -111,7 +108,7 @@ struct DetailsView: View {
                             }
                         })
                         .task {
-                            await viewModel.loadImage(url: url)
+                            await viewModel.uploadCacheImage(url: url)
                         }
                     }
                 }
@@ -123,7 +120,7 @@ struct DetailsView: View {
                     Color.black
                 } else {
                     LinearGradient(
-                        colors: [Color(Constants.startColor), Color(Constants.endColor)],
+                        colors: [.mainAppColorStart, .mainAppColorEnd],
                         startPoint: .top,
                         endPoint: .bottom
                     )

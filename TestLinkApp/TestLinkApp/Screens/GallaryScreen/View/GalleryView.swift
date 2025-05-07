@@ -34,7 +34,7 @@ struct GalleryView: View {
                                endPoint: .bottom)
                 .ignoresSafeArea()
                 
-                switch viewModel.gallaryState {
+                switch viewModel.galleryState {
                 case .loading:
                     OnboardingView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -43,7 +43,7 @@ struct GalleryView: View {
                 case .content(let urls):
                     ContentView(viewModel: viewModel, urls: urls)
                 case .alert:
-                    EmptyView()
+                    OnboardingView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .alert(viewModel.titleAlert, isPresented: $isPresentAlert) {
                             Button(viewModel.titleReloadButtonAlert) {
@@ -137,7 +137,7 @@ private extension GalleryView {
             } else {
                 ProgressView()
                     .task {
-                        await viewModel.cahceImage(url: url)
+                        await viewModel.cacheImage(url: url)
                     }
             }
         }

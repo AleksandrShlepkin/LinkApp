@@ -7,14 +7,26 @@
 
 import Foundation
 
+protocol INetworkManager: AnyObject {
+    func fetchImageLinks() async throws -> [URL]
+}
+
 final class NetworkManager {
+    
+    //MARK: Properties
+    
+    static let shared = NetworkManager()
+    private let url: URL = URL(string: "https://it-link.ru/test/images.txt")!
+}
+
+
+
+extension NetworkManager: INetworkManager {
     
     //MARK: Functions
     
     func fetchImageLinks() async throws -> [URL] {
-        guard let url = URL(string: "https://it-link.ru/test/images.txt") else {
-            throw URLError(.badURL)
-        }
+
         let (data, _) = try await URLSession.shared.data(from: url)
 
         guard let text = String(data: data, encoding: .utf8) else {

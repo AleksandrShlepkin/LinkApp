@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import Combine
 
-@MainActor
+
 final class DetailsViewModel: ObservableObject {
     
     //MARK: Properties
@@ -18,30 +18,46 @@ final class DetailsViewModel: ObservableObject {
     
     //MARK: Private Properties
     
-    private let fileDownloader = NetworkManager()
+    private let networkManager: INetworkManager
+    private let cacheManager: ICacheManager
     
     //MARK: Init
     
-    init(cachedImageURLs: [URL : URL]) {
+    init(cachedImageURLs: [URL : URL],
+         networkManager: INetworkManager = NetworkManager.shared,
+         cacheManager: ICacheManager = CacheManager.shared) {
         self.cachedImageURLs = cachedImageURLs
+        self.networkManager = networkManager
+        self.cacheManager = cacheManager
     }
     
     //MARK: Functions
     
-    func loadImage(url: URL) async {
-        let fullURL = CacheManager.shared.url(forKey: url.absoluteString, type: .full)
-        guard let fullURL = fullURL else { return }
-        if FileManager.default.fileExists(atPath: fullURL.path) {
-            cachedImageURLs[url] = fullURL
-            return
-        }
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            CacheManager.shared.save(data, forKey: url.absoluteString, type: .full)
-            cachedImageURLs[url] = CacheManager.shared.url(forKey: url.absoluteString, type: .full)
-            
-        } catch {
-            print("Image load error: \(error)")
-        }
+    @MainActor
+    func uploadCacheImage(url: URL) async {
+        var updateModel = cachedImageURLs
+        updateModel[url] = cachedImageURLs[url]
+        cachedImageURLs = updateModel
     }
+}
+
+private extension DetailsViewModel {
+    
+    private func cacheImage(url: URL) async {
+          let fullURL = await cacheManager.urlImage(forKey: url.absoluteString, type: .full)
+          if FileManager.default.fileExists(atPath: fullURL.path) {
+              let cacheURl = fullURL
+              await uploadCacheImage(url: cacheURl)
+              return
+          }
+          do {
+              let (data, _) = try await URLSession.shared.data(from: url)
+              await cacheManager.saveImage(data, forKey: url.absoluteString, type: .full)
+              let cacheURl = await cacheManager.urlImage(forKey: url.absoluteString, type: .full)
+              await uploadCacheImage(url: cacheURl)
+              
+          } catch {
+              print("Image load error: \(error)")
+          }
+      }
 }

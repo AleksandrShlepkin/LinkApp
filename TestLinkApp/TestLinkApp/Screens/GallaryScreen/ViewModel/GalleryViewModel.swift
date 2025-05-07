@@ -13,7 +13,7 @@ final class GalleryViewModel: ObservableObject {
     
     //MARK: Properties
     
-    @Published var gallaryState: GalleryContentState = .loading
+    @Published var galleryState: GalleryContentState = .loading
     @Published var cachedImageURLs: [URL: URL] = [:]
     
     
@@ -22,14 +22,15 @@ final class GalleryViewModel: ObservableObject {
     let titleCancelButtonAlert: String = "Cancel"
     let errorMessageLoadImage: String = "Error load image"
     let errorMessageDontHaveImage: String = "Dont have image"
-    let titileColor: Color = .white
-    let title: String = "Gallary"
+    let titleColor: Color = .white
+    let title: String = "Gallery"
     
     //MARK: Private Properties
     
     private let networkManager: INetworkManager
     private let connectManager : INetworkConnection
     private let cacheManager: ICacheManager
+    private var cancellables = Set<AnyCancellable>()
     
     init(cacheManager: ICacheManager = CacheManager.shared,
          networkManager: INetworkManager = NetworkManager.shared,
@@ -37,14 +38,31 @@ final class GalleryViewModel: ObservableObject {
         self.cacheManager = cacheManager
         self.networkManager = networkManager
         self.connectManager = connectManager
+        
+        setupNetworkObserver()
     }
     
     //MARK: Functions
     
+    private func setupNetworkObserver() {
+        connectManager.connectionPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isConnected in
+                guard let self = self else { return }
+                
+                if isConnected {
+                    Task { await self.loadImages() }
+                } else {
+                    Task { await self.updateState(state: .alert) }
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
     func loadImages() async {
         guard connectManager.isConnected else {
             await updateState(state: .alert)
-            return
+             return
         }
 
         await updateState(state: .loading)
@@ -57,7 +75,7 @@ final class GalleryViewModel: ObservableObject {
         }
     }
     
-    func cahceImage(url: URL) async {
+    func cacheImage(url: URL) async {
 
         guard cachedImageURLs[url] == nil else {
             await loadImages()
@@ -92,14 +110,12 @@ final class GalleryViewModel: ObservableObject {
     
     @MainActor
     func updateState (state: GalleryContentState) {
-        self.gallaryState = state
-        print("State: \(connectManager.isConnected  ? "Connected" : "Not Connected")")
+        self.galleryState = state
     }
     
     @MainActor
     func uploadCacheImage(key: URL, value: URL) async {
         cachedImageURLs[key] = value
-    
     }
 }
 

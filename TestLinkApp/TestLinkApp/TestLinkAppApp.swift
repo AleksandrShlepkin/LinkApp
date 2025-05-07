@@ -11,7 +11,7 @@ import SwiftUI
 struct TestLinkAppApp: App {
     var body: some Scene {
         WindowGroup {
-            GallaryView()
+            GalleryView()
         }
     }
 }

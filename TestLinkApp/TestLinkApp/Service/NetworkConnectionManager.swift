@@ -5,47 +5,52 @@
 //  Created by Александр Коротков on 29.04.2025.
 //
 
-import Foundation
 import Network
 import SwiftUI
+import Combine
+import Foundation
 
-final class NetworkConnectionManager {
+protocol INetworkConnection: AnyObject {
+    var isConnected: Bool { get }
+    var connectionPublisher: Published<Bool>.Publisher { get }
+}
+
+final class NetworkConnectionManager: INetworkConnection {
     
-    //MARK: Properties
+    // MARK: - Singleton
     
     static let shared = NetworkConnectionManager()
     
-    //MARK: Private Properties
+    // MARK: - Properties
     
-    private var monitor: NWPathMonitor
+    private let monitor: NWPathMonitor
     private let queue = DispatchQueue(label: "NetworkMonitor")
     
     @Published private(set) var isConnected: Bool = false
+    var connectionPublisher: Published<Bool>.Publisher { $isConnected }
     
-    //MARK: Actions
+    // MARK: - Init
     
-    var onReconnect: (() -> Void)?
-    
-    //MARK: Init
-    
-    init() {
+    private init() {
         monitor = NWPathMonitor()
         startMonitoring()
     }
     
-    //MARK: Private functions
+    // MARK: - Private Methods
     
     private func startMonitoring() {
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self = self else { return }
             let newStatus = path.status == .satisfied
-            if newStatus != self.isConnected {
+            DispatchQueue.main.async {
                 self.isConnected = newStatus
-                if newStatus {
-                    self.onReconnect?()
-                }
             }
         }
+
         monitor.start(queue: queue)
+    }
+    
+    deinit {
+        monitor.cancel()
     }
 }
