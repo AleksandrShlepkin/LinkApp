@@ -19,13 +19,15 @@ enum CacheImageType {
     }
 }
 
-protocol ICacheManager: Sendable {
+protocol ICacheManager {
     func saveImage(_ data: Data, forKey key: String, type: CacheImageType) async
     func getImage(forKey key: String, type: CacheImageType) async -> Data?
     func urlImage(forKey key: String, type: CacheImageType) async -> URL
+    func loadCachedURLs() -> [String]
+    func saveCachedURLs(_ urls: [String])
 }
 
-actor CacheManager {
+final class CacheManager {
     
     //MARK: Properties
     
@@ -35,6 +37,9 @@ actor CacheManager {
     
     private let fileManager = FileManager.default
     private let cacheDirectory: URL
+    private var cachedURLsFile: URL {
+        cacheDirectory.appendingPathComponent("cached_urls.json")
+    }
     
     //MARK: Init
 
@@ -71,6 +76,19 @@ extension CacheManager: ICacheManager {
     func urlImage(forKey key: String, type: CacheImageType) async -> URL {
         let folder = cacheDirectory.appendingPathComponent(type.folderName)
         return folder.appendingPathComponent(key.sha256())
+    }
+    
+    func loadCachedURLs() -> [String] {
+        guard let data = try? Data(contentsOf: cachedURLsFile),
+              let list = try? JSONDecoder().decode([String].self, from: data) else {
+            return []
+        }
+        return list
+    }
+
+    func saveCachedURLs(_ urls: [String]) {
+        guard let data = try? JSONEncoder().encode(urls) else { return }
+        try? data.write(to: cachedURLsFile)
     }
     
 }

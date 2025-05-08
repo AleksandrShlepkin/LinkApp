@@ -8,15 +8,15 @@
 import Foundation
 
 protocol INetworkManager: AnyObject {
-    func fetchImageLinks() async throws -> [URL]
+    func fetchImageLinks() async throws -> [String]
 }
 
 final class NetworkManager {
     
     //MARK: Properties
-    
     static let shared = NetworkManager()
     private let url: URL = URL(string: "https://it-link.ru/test/images.txt")!
+
 }
 
 
@@ -25,7 +25,7 @@ extension NetworkManager: INetworkManager {
     
     //MARK: Functions
     
-    func fetchImageLinks() async throws -> [URL] {
+    func fetchImageLinks() async throws -> [String] {
 
         let (data, _) = try await URLSession.shared.data(from: url)
 
@@ -39,7 +39,7 @@ extension NetworkManager: INetworkManager {
             .filter {  $0.hasPrefix("https://") }
             .compactMap { URL(string: $0) }
         
-        var imageURLs: [URL] = []
+        var imageURLs: [String] = []
 
         for url in candidates {
             do {
@@ -49,7 +49,7 @@ extension NetworkManager: INetworkManager {
                 if let httpResponse = response as? HTTPURLResponse,
                    let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type"),
                    contentType.starts(with: "image/") {
-                    imageURLs.append(url)
+                    imageURLs.append(url.absoluteString)
                 }
             } catch {
                 print("⚠️ Error HEAD request : \(url) — \(error.localizedDescription)")

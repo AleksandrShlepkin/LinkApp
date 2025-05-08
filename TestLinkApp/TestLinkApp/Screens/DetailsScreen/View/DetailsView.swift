@@ -17,13 +17,12 @@ struct DetailsView: View {
     
     //MARK: Properties
     
-    let urls: [URL]
+    @State var items: [ImageModel]
+    @State var selectedItem: ImageModel
     
     //MARK: UI Properties
     
-    @State var selectedURL: URL
     @State private var isNavBarHidden = false
-    @State var viewModel: DetailsViewModel
     @State private var isZoomed = false
     
     
@@ -31,7 +30,7 @@ struct DetailsView: View {
         
         //MARK: Properties
         
-        let url: URL
+        let url: String
         
         //MARK: Private Properties
         
@@ -49,7 +48,7 @@ struct DetailsView: View {
         
         var body: some View {
             GeometryReader { geo in
-                AsyncImage(url: url) { image in
+                AsyncImage(url: URL(string: url)) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -75,44 +74,31 @@ struct DetailsView: View {
                     onTap()
                 }
             }
+            .ignoresSafeArea(edges: .all)
         }
     }
     
     var body: some View {
         ZStack {
-            TabView(selection: $selectedURL) {
-                ForEach( urls, id: \.self) { url in
-                    if let localURL: URL = viewModel.cachedImageURLs[url] {
-                        ZoomableImageView(url: localURL,
-                                          onTap: {
+            TabView(selection: $selectedItem) {
+                ForEach(items) { item in
+                        ZoomableImageView(url: item.imageURL) {
                             withAnimation(.easeInOut(duration: Constants.durationAnimateShowNavBar)) {
                                 isNavBarHidden.toggle()
                             }
-                        },
-                                          onZoom: { zooming in
+                        } onZoom: { isZooming in
                             withAnimation {
-                                isZoomed = zooming
+                                isZoomed = isZooming
                             }
-                        })
-                        .tag(url)
-                    } else {
-                        ZoomableImageView(url: url,
-                                          onTap: {
-                            withAnimation(.easeInOut(duration: Constants.durationAnimateShowNavBar)) {
-                                isNavBarHidden.toggle()
-                            }
-                        },
-                                          onZoom: { zooming in
-                            withAnimation {
-                                isZoomed = zooming
-                            }
-                        })
-                        .task {
-                            await viewModel.uploadCacheImage(url: url)
                         }
-                    }
+                        .tag(item)
+                    
                 }
             }
+
+        }
+        .onTapGesture {
+            isNavBarHidden.toggle()
         }
         .background(
             Group {
@@ -128,18 +114,17 @@ struct DetailsView: View {
             }
         )
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: isNavBarHidden || isZoomed ? .never : .automatic))
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.automatic)
         .navigationBarBackButtonHidden(isNavBarHidden || isZoomed)
         .edgesIgnoringSafeArea(.all)
         .toolbar {
             if !isNavBarHidden {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    ShareLink(item: selectedURL) {
+                    ShareLink(item: URL(string:selectedItem.imageURL) ?? URL(fileURLWithPath: "Invalid URL")) {
                         Image(systemName: "square.and.arrow.up")
                     }
                 }
             }
         }
-        
     }
 }

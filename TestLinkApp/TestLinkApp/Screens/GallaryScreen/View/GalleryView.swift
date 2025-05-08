@@ -40,40 +40,32 @@ struct GalleryView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .error(let error):
                     Text(viewModel.errorMessageDontHaveImage)
-                case .content(let urls):
-                    ContentView(viewModel: viewModel, urls: urls)
+                case .content:
+                    ContentView(viewModel: viewModel)
                 case .alert:
                     OnboardingView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .alert(viewModel.titleAlert, isPresented: $isPresentAlert) {
-                            Button(viewModel.titleReloadButtonAlert) {
-                                isPresentAlert = false
-                                Task {
-                                    await viewModel.loadImages()
-                                }
-                            }
-                            Button(viewModel.titleCancelButtonAlert, role: .cancel) {}
-                        }
                 }
             }
             .task {
-                if viewModel.cachedImageURLs.isEmpty {
-                    await viewModel.loadImages()
+                if viewModel.items.isEmpty {
+                    await viewModel.fetchImageURLs()
                 }
             }
         }
         .toolbar(.hidden)
+        .tint(Color.white)
     }
 }
-
 
 private extension GalleryView {
     
     struct ContentView: View {
         
+        //MARK: UI Properties
+
         @StateObject var viewModel: GalleryViewModel
         
-        let urls: [URL]
         var body: some View {
             ZStack {
                 ScrollView {
@@ -81,29 +73,32 @@ private extension GalleryView {
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
-                    if urls.isEmpty {
-                        Text(viewModel.errorMessageLoadImage)
-                    } else {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: Constants.minimusSizwGridItem,
-                                                               maximum: Constants.maximusSizwGridItem),
-                                                     spacing: Constants.spacingBeetwenSections)],
-                                  spacing: Constants.spacingGritItem)
-                        {
-                            ForEach(urls, id: \.self) { url in
-                                NavigationLink(destination: DetailsView(urls: urls,
-                                                                        selectedURL: url,
-                                                                        viewModel: DetailsViewModel(cachedImageURLs: viewModel.cachedImageURLs))) {
-                                    CellView(url: url, viewModel: viewModel)
-                                        .frame(width: Constants.widthCell, height: Constants.heightCell)
-                                        .clipped()
-                                        .cornerRadius(Constants.cornerRadiusCell)
-                                }
+                    LazyVGrid(
+                        columns: [
+                            GridItem(
+                                .adaptive(
+                                    minimum: Constants.minimusSizwGridItem,
+                                    maximum: Constants.maximusSizwGridItem
+                                ),
+                                spacing: Constants.spacingBeetwenSections
+                            )
+                        ],
+                        spacing: Constants.spacingGritItem
+                    )
+                    {
+                        ForEach(viewModel.items) { item in
+                            NavigationLink(
+                                destination: DetailsView(items: viewModel.items, selectedItem: item)
+                            ) {
+                                CellView(viewModel: viewModel, image: item)
+                                    .frame(width: Constants.widthCell, height: Constants.heightCell)
+                                    .clipped()
+                                    .cornerRadius(Constants.cornerRadiusCell)
                             }
                         }
                     }
-
                 }
-
+                
             }
         }
     }
@@ -111,35 +106,25 @@ private extension GalleryView {
     struct CellView: View {
         
         //MARK: Properties
+        @StateObject var viewModel: GalleryViewModel
         
-        let url: URL
-        
+        var image: ImageModel
         //MARK: UI Properties
         
-        @ObservedObject var viewModel: GalleryViewModel
-        
         var body: some View {
-            if let localURL = viewModel.cachedImageURLs[url] {
-                AsyncImage(url: localURL) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        Image(systemName: "photo")
-                    default:
-                        EmptyView()
-                    }
+            
+            AsyncImageView(
+                urlString: image.imageURL,
+                type: .preview) {
+                    //Приерное исполнение функции подгрузки изображений, если они не загрузились
+                    Image(systemName: "photo")
+                        .onTapGesture {
+                            Task { await viewModel.uploadImage(image.imageURL)}
+                        }
+                } loaderView: {
+                    ProgressView()
                 }
-            } else {
-                ProgressView()
-                    .task {
-                        await viewModel.cacheImage(url: url)
-                    }
-            }
         }
     }
 }
+

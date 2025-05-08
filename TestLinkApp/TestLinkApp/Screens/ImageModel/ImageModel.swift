@@ -7,10 +7,8 @@
 
 import Foundation
 
-struct ImageModel: Identifiable {
+struct ImageModel: Identifiable, Hashable {
     let id: UUID = UUID()
-    var imageURLs: [URL] = []
-    var cachedImageURLs: [URL: URL] = [:]
-    var isLoading = false
-    var error: Error?
+    var imageURL: String
+
 }
